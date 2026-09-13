@@ -1,0 +1,16 @@
+// 根 build.gradle — Android Studio 打开时会自动提示配置 Gradle 与 SDK
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.5.2'
+    }
+}
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}

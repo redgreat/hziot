@@ -1,0 +1,8 @@
+.row { display: flex; justify-content: space-between; padding: 10rpx 0; }
+.lbl { color: #7d8a80; }
+.sec { font-weight: 600; margin-bottom: 8rpx; }
+.mt { margin-top: 20rpx; }
+.in {
+  background: #f5f7f4; border-radius: 12rpx;
+  padding: 14rpx 16rpx; margin-top: 16rpx; font-size: 26rpx;
+}

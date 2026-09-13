@@ -1,0 +1,20 @@
+<!-- pages/login/login — 授权导入登录（小程序内无法跑网页 OAuth 跳转，导入回调 token） -->
+<view class="page">
+  <view class="hero">
+    <view class="hero-title">合宙IoT-运动传感器</view>
+    <view class="hero-sub">小程序端 · AirCloud 定位平台</view>
+  </view>
+
+  <view class="card">
+    <view class="step">第 1 步：在浏览器打开你的 WEB 应用登录页并完成登录</view>
+    <view class="muted">登录成功后浏览器地址栏是 …login.html?token=xxxx 的地址</view>
+    <button class="btn-ghost mt" bindtap="onCopyAuthorize">复制说明文本</button>
+  </view>
+
+  <view class="card">
+    <view class="step">第 2 步：把含 token 的地址（或裸 token）粘贴到下面</view>
+    <textarea class="ta" placeholder="粘贴 …login.html?token=xxxx 或仅 token" value="{{paste}}" bindinput="onInput" maxlength="-1" />
+    <button class="btn mt" loading="{{loading}}" bindtap="onLogin">登录</button>
+    <view class="warn mt" wx:if="{{error}}">{{error}}</view>
+  </view>
+</view>

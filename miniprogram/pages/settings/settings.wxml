@@ -1,0 +1,17 @@
+<view class="card">
+  <view class="row"><text class="lbl">账号</text><text>{{profile.name || '未提供'}}</text></view>
+  <view class="row"><text class="lbl">手机</text><text>{{profile.mobile || '未提供'}}</text></view>
+  <view class="row"><text class="lbl">接口</text><text class="muted">api-iot.luatos.com</text></view>
+</view>
+
+<view class="card">
+  <view class="sec">本地设备命名</view>
+  <view class="muted">在下方输入 IMEI 与名称，保存在本机（小程序 v1 暂不做云端名称同步）</view>
+  <input class="in" placeholder="设备 IMEI" value="{{nImei}}" bindinput="onImei" />
+  <input class="in" placeholder="设备名称" value="{{nName}}" bindinput="onName" />
+  <button class="btn mt" bindtap="onSaveName">保存名称</button>
+</view>
+
+<view class="card">
+  <button class="btn-ghost" bindtap="onLogout">退出登录</button>
+</view>

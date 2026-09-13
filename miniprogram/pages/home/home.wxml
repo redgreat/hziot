@@ -1,0 +1,33 @@
+<view class="wrap">
+  <view class="proj-bar">
+    <picker mode="selector" range="{{projectNames}}" value="{{projIndex}}" bindchange="onProjectChange">
+      <view class="proj-pick">📁 {{projectNames[projIndex] || '选择项目'}} ▾</view>
+    </picker>
+    <view class="muted">{{devices.length ? devices.length + ' 台设备' : ''}}</view>
+  </view>
+
+  <map id="map" class="map" latitude="{{center.lat}}" longitude="{{center.lng}}" scale="{{scale}}"
+    markers="{{markers}}" show-location="{{false}}" enable-scroll="{{true}}">
+  </map>
+
+  <scroll-view scroll-y class="devs">
+    <view wx:if="{{loading}}" class="card muted">加载设备中…</view>
+    <view wx:elif="{{!devices.length}}" class="card muted">
+      当前项目下暂无设备，可在右上角设置页切换项目
+    </view>
+    <view wx:for="{{devices}}" wx:key="imei" class="card dev" bindtap="onDeviceTap" data-imei="{{item.imei}}">
+      <view class="dev-head">
+        <text class="dev-name">{{item.name}}</text>
+        <text class="badge {{item.online ? 'badge-on' : 'badge-off'}}">{{item.online ? '有定位' : '暂无定位'}}</text>
+      </view>
+      <view class="muted">IMEI {{item.imei}}</view>
+      <view wx:if="{{item.lng !== undefined}}" class="dev-row">📍 {{item.lng}}, {{item.lat}}</view>
+      <view wx:if="{{item.address}}" class="dev-row">🏷 {{item.address}}</view>
+      <view wx:if="{{item.time}}" class="dev-row">🕒 {{item.time}}</view>
+      <view class="dev-row">
+        <text wx:if="{{item.battery !== null}}">🔋 {{item.battery}}%</text>
+        <text wx:if="{{item.sat !== undefined}}">  🛰️ {{item.sat}} 颗</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

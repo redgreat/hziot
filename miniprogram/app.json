@@ -1,0 +1,34 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/home/home",
+    "pages/track/track",
+    "pages/settings/settings"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#2f7d46",
+    "navigationBarTitleText": "合宙IoT-运动传感器",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f5f7f4"
+  },
+  "tabBar": {
+    "color": "#8a9a8e",
+    "selectedColor": "#2f7d46",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      { "pagePath": "pages/home/home", "text": "设备" },
+      { "pagePath": "pages/track/track", "text": "轨迹" },
+      { "pagePath": "pages/settings/settings", "text": "设置" }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于在地图上定位设备位置"
+    }
+  },
+  "requiredPrivateInfos": [],
+  "sitemapLocation": "sitemap.json",
+  "style": "v2"
+}

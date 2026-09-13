@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#2f9e44">
+<title>合宙IoT-运动传感器 · 登录</title>
+<style>
+:root{color-scheme:light;--bg:#f5f7f4;--panel:#ffffff;--line:#dfe5dd;--text:#1d2a22;--muted:#7a8a7e;--green:#2f9e44;--red:#e03131;
+  font-family:"Noto Sans SC","Microsoft YaHei",system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+button{font:inherit;cursor:pointer}
+.hidden{display:none!important}
+body{display:grid;place-items:center;padding:24px;overflow:hidden}
+.deco{position:fixed;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(47,158,68,.12),transparent 65%);right:-140px;bottom:-160px;animation:pulse 4s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+.grid{position:fixed;inset:0;background-image:linear-gradient(rgba(29,42,34,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(29,42,34,.035) 1px,transparent 1px);background-size:44px 44px}
+.login-card{position:relative;width:min(100%,440px);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:36px;box-shadow:0 20px 60px rgba(29,42,34,.12)}
+.brand{display:flex;gap:12px;align-items:center;margin-bottom:30px}
+.brand-mark{width:44px;height:44px;border-radius:13px;background:var(--green);display:grid;place-items:center;color:#fff;font-weight:900;font-size:.9rem}
+.brand span.bname{font-size:1.1rem;font-weight:800}
+.eyebrow{color:var(--green);font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;font-weight:800}
+h1{font-size:clamp(1.5rem,6vw,2rem);line-height:1.2;margin:.5rem 0 .8rem}
+.login-card p{color:var(--muted);line-height:1.7;margin:0 0 22px;font-size:.92rem}
+.feats{display:grid;gap:8px;margin:0 0 26px;padding:0;list-style:none}
+.feats li{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:.86rem}
+.feats i{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}
+.btn{border:0;border-radius:12px;padding:.85rem 1rem;font-weight:750;background:var(--green);color:#fff;min-height:46px;width:100%;font-size:1rem}
+.btn:hover{filter:brightness(1.06)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.status-error{color:var(--red);background:#fdf3f3;border:1px solid #f1b3b3;padding:.8rem 1rem;border-radius:12px;font-size:.9rem;margin-top:16px}
+.loading-row{display:flex;align-items:center;justify-content:center;gap:12px;min-height:48px;color:var(--muted)}
+.spinner{width:24px;height:24px;border:3px solid #e3e8e2;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+footer{margin-top:22px;color:var(--muted);font-size:.76rem;text-align:center;line-height:1.6}
+@media(max-width:480px){.login-card{padding:26px 20px;border-radius:18px}}
+</style>
+</head>
+<body>
+<div class="grid"></div><div class="deco"></div>
+<main class="login-card">
+  <div class="brand"><div class="brand-mark">IoT</div><span class="bname">合宙IoT-运动传感器</span></div>
+  <section id="login-container">
+    <div class="eyebrow">Luat IoT · AirCloud</div>
+    <h1>登录后查看设备实时状态</h1>
+    <p>基于合宙 AirCloud 平台开放接口，呈现设备实时位置、历史轨迹、电子围栏、运动传感器数据与远程指令。</p>
+    <ul class="feats">
+      <li><i></i>实时位置地图与悬浮设备卡片</li>
+      <li><i></i>历史轨迹回放与 GNSS 精细点</li>
+      <li><i></i>电子围栏越界报警</li>
+      <li><i></i>性能监控与运动状态分析</li>
+    </ul>
+    <button id="login-button" class="btn" type="button">使用合宙账号登录</button>
+  </section>
+  <section id="login-loading" class="loading-row hidden" aria-live="polite">
+    <div class="spinner"></div><span id="login-loading-text">正在确认登录状态…</span>
+  </section>
+  <section id="login-error" class="status-error hidden" role="alert"></section>
+  <footer>授权信息仅用于读取当前账号下的设备数据，不会写入任何数据</footer>
+</main>
+<script>
+/* login.html — OAuth 登录页（独立内联）
+ * 域名划分（强制）：接口请求一律 API_HOST；页面跳转与 OAuth return_to 一律 PAGE_BASE 前缀完整绝对 URL。
+ */
+(function () {
+  'use strict';
+
+  // ---- 域名常量（全文档只允许此处出现域名值）----
+  var API_HOST = 'https://api-iot.luatos.com';
+  var BASE_HOST = 'https://iot.luatos.com';
+  var OAUTH_URL = API_HOST + '/iam/luat_oauth/authorize';
+  var LOGIN_URL = API_HOST + '/iam/luat_oauth/v2/login';
+
+  function isLocal() {
+    try {
+      return window.location.protocol === 'file:' ||
+        /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname || '');
+    } catch (e) { return false; }
+  }
+
+  // 生产拼 PAGE_BASE 前缀完整绝对 URL；本地开发回退相对路径
+  function pageAbs(file) {
+    if (isLocal()) return file;
+    var dir = String(window.location.pathname || '/').replace(/[^/]*$/, '');
+    return BASE_HOST + dir + file;
+  }
+  function goPage(file) {
+    try { window.location.href = pageAbs(file); } catch (e) { /* 忽略 */ }
+  }
+
+  // ---- storage 安全封装 ----
+  var store = {
+    get: function (k) {
+      try {
+        var v = window.localStorage.getItem(k);
+        if (!v) return null;
+        try { return JSON.parse(v); } catch (e) { return null; }
+      } catch (e) { return null; }
+    },
+    set: function (k, v) {
+      try { window.localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; }
+    },
+    remove: function (k) { try { window.localStorage.removeItem(k); } catch (e) { /* 忽略 */ } }
+  };
+
+  // ---- DOM ----
+  var btn = document.getElementById('login-button');
+  var loadingEl = document.getElementById('login-loading');
+  var loadingText = document.getElementById('login-loading-text');
+  var errEl = document.getElementById('login-error');
+  var loggingIn = false;
+
+  function showLogin() {
+    loadingEl.classList.add('hidden');
+    btn.parentNode.classList.remove('hidden');
+    btn.disabled = false;
+  }
+  function showLoading(text) {
+    if (text) loadingText.textContent = text;
+    loadingEl.classList.remove('hidden');
+    document.getElementById('login-container').classList.add('hidden');
+  }
+  function showError(text) {
+    errEl.textContent = text;
+    errEl.classList.remove('hidden');
+  }
+  function hideError() { errEl.classList.add('hidden'); }
+
+  // ---- 认证上下文（my_* → ai_* → m_* 兼容）----
+  function validAuth(prefix) {
+    var auth = store.get(prefix + 'auth');
+    var service = store.get(prefix + 'service');
+    return !!(auth && typeof auth.token === 'string' && auth.token.length > 0 &&
+      typeof auth.salt === 'string' && auth.salt.length > 0 &&
+      service && typeof service.sid === 'string' && service.sid.length > 0);
+  }
+  function hasAnyAuth() {
+    return validAuth('my_') || validAuth('ai_') || validAuth('m_');
+  }
+  // 宿主会话：m_* 为唯一权威，且不得回退 OAuth
+  function hostSession() {
+    try { return window.sessionStorage.getItem('m_host_session') === '1'; } catch (e) { return false; }
+  }
+
+  function redirectTarget() {
+    var p = null;
+    try {
+      var m = /[?&]return_to=([^&]+)/.exec(window.location.search || '');
+      if (m) p = decodeURIComponent(m[1]);
+      else {
+        var h = window.location.hash.match(/return_to=([^&]+)/);
+        if (h) p = decodeURIComponent(h[1]);
+      }
+    } catch (e) { p = null; }
+    // 安全校验：仅允许 /login.html /index.html 站内路径（拒绝外链协议与 //）
+    if (typeof p === 'string' && p && p.indexOf('//') !== 0 && p.indexOf('/') === 0 &&
+        !/^[a-zA-Z][a-zA-Z0-9+.\-]*:/.test(p) && !/[?&#]/.test(p)) {
+      return p;
+    }
+    return 'index.html';
+  }
+
+  function saveAuth(value) {
+    if (!value || !value.auth || !value.service) return false;
+    if (typeof value.auth.token !== 'string' || !value.auth.token.length) return false;
+    if (typeof value.auth.salt !== 'string' || !value.auth.salt.length) return false;
+    if (typeof value.service.sid !== 'string' || !value.service.sid.length) return false;
+    var ok = true;
+    ok = store.set('my_auth', { token: value.auth.token, salt: value.auth.salt }) && ok;
+    ok = store.set('my_service', { sid: value.service.sid }) && ok;
+    if (value.user) {
+      var prof = {};
+      if (value.user.name !== undefined) prof.name = value.user.name;
+      if (value.user.mobile !== undefined) prof.mobile = value.user.mobile;
+      // 旧字段只读兼容（不再产生 user_name/user_phone 新写法）
+      else if (value.user.user_name !== undefined) prof.name = value.user.user_name;
+      else if (value.user.user_phone !== undefined) prof.mobile = value.user.user_phone;
+      if (Object.keys(prof).length) ok = store.set('my_profile', prof) && ok;
+    }
+    if (value.tenant) ok = store.set('my_tenant', value.tenant) && ok;
+    if (value.sets) ok = store.set('my_sets', value.sets) && ok; // sets.publicKey 即 RSA 公钥
+    return ok;
+  }
+
+  // 登录成功清空业务缓存（pt_* 防多账号污染，保留鉴权键）
+  function clearBusinessCache() {
+    try {
+      var ls = window.localStorage;
+      var kill = [];
+      for (var i = 0; i < ls.length; i++) {
+        var k = ls.key(i);
+        if (k && k.indexOf('pt_') === 0) kill.push(k);
+      }
+      for (var j = 0; j < kill.length; j++) {
+        try { ls.removeItem(kill[j]); } catch (e) { /* 忽略 */ }
+      }
+    } catch (e) { /* 忽略 */ }
+  }
+
+  // ---- OAuth ----
+  function startOAuth() {
+    if (loggingIn) return; // 防重复点击
+    loggingIn = true;
+    // 同源多应用隔离：my_sets 可能残留同域名下其他应用的 RSA 公钥，
+    // 旧公钥与本应用 appId 不配对会导致 common/* 报「非法访问」。
+    // OAuth 跳转前强制清除，登录成功后由本应用 v2/login 响应重新写入。
+    try { window.localStorage.removeItem('my_sets'); } catch (e) { /* 忽略 */ }
+    btn.disabled = true;
+    hideError();
+    // 清理临时 OAuth query/hash，不得带入新授权 URL
+    try {
+      var clean = window.location.pathname + (isLocal() ? '' : '');
+      window.history.replaceState({}, '', clean);
+    } catch (e) { /* 忽略 */ }
+    var returnTo = pageAbs('login.html'); // 必须 PAGE_BASE 前缀完整绝对 URL
+    showLoading('正在跳转授权…');
+    try {
+      window.location.href = OAUTH_URL + '?return_to=' + encodeURIComponent(returnTo);
+    } catch (e) {
+      showLogin();
+      showError('无法发起授权，请检查网络后重试');
+    }
+  }
+
+  function exchangeLogin(token) {
+    showLoading('正在换取登录信息…');
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function () { try { controller.abort(); } catch (e) { /* 忽略 */ } }, 15000) : null;
+    var init = { method: 'POST', headers: { 'Content-Type': 'application/json' } };
+    if (controller) init.signal = controller.signal;
+    fetch(LOGIN_URL + '?token=' + encodeURIComponent(token), init).then(function (resp) {
+      return resp.text();
+    }).then(function (text) {
+      if (timer) clearTimeout(timer);
+      var data;
+      try { data = JSON.parse(text); } catch (e) { throw new Error('数据解析失败'); }
+      if (!data || data.code !== 0 || !data.value) {
+        throw new Error((data && data.value) ? String(data.value) : '登录失败（code ' + (data ? data.code : '?') + '）');
+      }
+      if (!saveAuth(data.value)) throw new Error('登录信息保存失败');
+      clearBusinessCache();
+      showLoading('登录成功，正在进入…');
+      setTimeout(function () { goPage(redirectTarget()); }, 300); // 同级 index.html，不带认证参数
+    }).catch(function (err) {
+      loggingIn = false;
+      showLogin();
+      showError(err && err.message === '数据解析失败' ? '数据解析失败' :
+        (String((err && err.message) || '').indexOf('abort') >= 0 ? '请求超时，请重试' : (err && err.message) || '登录失败，请重试'));
+    });
+  }
+
+  // ---- 初始化 ----
+  function initAuth() {
+    // OAuth 错误回调
+    var q = parseParams(window.location.search);
+    var hs = parseParams(window.location.hash);
+    if (q.error || hs.error) {
+      try { window.history.replaceState({}, '', window.location.pathname); } catch (e) { /* 忽略 */ }
+      showLogin();
+      showError('授权未完成：' + (q.error_description || q.error || hs.error_description || hs.error || '已取消'));
+      return;
+    }
+    // OAuth token（query / hash）→ 只进内存，立即清理 URL
+    var token = q.token || hs.token;
+    if (token) {
+      try {
+        var clean = window.location.pathname + (isLocal() ? '' : '');
+        window.history.replaceState({}, '', clean);
+      } catch (e) { /* 忽略 */ }
+      exchangeLogin(token);
+      return;
+    }
+    // m_* 外部认证注入（完整有效才建立）
+    if (q.m_token && q.m_salt && q.m_sid) {
+      store.set('m_auth', { token: q.m_token, salt: q.m_salt });
+      store.set('m_service', { sid: q.m_sid });
+      var prof = {};
+      if (q.m_name) prof.name = q.m_name;
+      if (q.m_phone) prof.mobile = q.m_phone;
+      if (prof.name !== undefined || prof.mobile !== undefined) store.set('m_profile', prof);
+      var msets = {};
+      if (q.m_algorithm) msets.algorithm = q.m_algorithm;
+      if (q.m_encryptOutput) msets.encryptOutput = q.m_encryptOutput;
+      if (q.m_padding) msets.padding = q.m_padding;
+      if (q.m_publicKey) msets.publicKey = q.m_publicKey;
+      if (q.m_publicKeyEncoding) msets.publicKeyEncoding = q.m_publicKeyEncoding;
+      if (Object.keys(msets).length) store.set('m_sets', msets);
+      try { window.sessionStorage.setItem('m_host_session', '1'); } catch (e) { /* 忽略 */ }
+      try { window.history.replaceState({}, '', window.location.pathname); } catch (e) { /* 忽略 */ }
+    }
+    // 宿主会话：不展示 OAuth 按钮，业务化引导
+    if (hostSession()) {
+      if (validAuth('m_')) { goPage(redirectTarget()); return; }
+      showLoading('登录状态已失效，请重新进入应用');
+      return;
+    }
+    // 已有完整有效认证 → 直接跳 index（自动登录，不重复 OAuth）
+    if (hasAnyAuth()) {
+      showLoading('检测到已有登录态，正在进入…');
+      goPage(redirectTarget());
+      return;
+    }
+    showLogin();
+  }
+
+  function parseParams(s) {
+    var out = {};
+    try {
+      var str = String(s || '').replace(/^[?#]/, '');
+      var parts = str ? str.split('&') : [];
+      for (var i = 0; i < parts.length; i++) {
+        if (!parts[i]) continue;
+        var kv = parts[i].split('=');
+        out[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || '').replace(/\+/g, ' '));
+      }
+    } catch (e) { /* 忽略 */ }
+    return out;
+  }
+
+  btn.addEventListener('click', startOAuth);
+  initAuth();
+})();
+</script>
+</body>
+</html>

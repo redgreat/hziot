@@ -1,0 +1,24 @@
+<view class="bar">
+  <picker mode="selector" range="{{deviceNames}}" value="{{devIndex}}" bindchange="onDevChange">
+    <view class="pick">📱 {{deviceNames[devIndex] || '选择设备'}} ▾</view>
+  </picker>
+  <picker mode="date" value="{{startDate}}" bindchange="onStartChange">
+    <view class="pick">📅 {{startDate}}</view>
+  </picker>
+</view>
+
+<view class="bar2">
+  <button class="btn query" loading="{{loading}}" bindtap="onQuery">查询轨迹</button>
+  <view class="muted" wx:if="{{count}}">共 {{count}} 个轨迹点</view>
+  <view class="warn" wx:if="{{error}}">{{error}}</view>
+</view>
+
+<map id="tmap" class="tmap" latitude="{{center.lat}}" longitude="{{center.lng}}" scale="{{scale}}"
+  polyline="{{polyline}}" markers="{{markers}}"></map>
+
+<scroll-view scroll-y class="pts">
+  <view wx:for="{{points}}" wx:key="index" class="pt">
+    <view>🕒 {{item.time}}</view>
+    <view class="muted">📍 {{item.lng}}, {{item.lat}}</view>
+  </view>
+</scroll-view>

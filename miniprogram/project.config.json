@@ -1,0 +1,24 @@
+{
+  "compileType": "miniprogram",
+  "libVersion": "3.0.0",
+  "appid": "touristappid",
+  "projectname": "pettrack-miniprogram",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "uglifyFileName": false,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "condition": {},
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
+}
