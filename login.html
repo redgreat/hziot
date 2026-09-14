@@ -34,6 +34,9 @@ h1{font-size:clamp(1.5rem,6vw,2rem);line-height:1.2;margin:.5rem 0 .8rem}
 .spinner{width:24px;height:24px;border:3px solid #e3e8e2;border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 footer{margin-top:22px;color:var(--muted);font-size:.76rem;text-align:center;line-height:1.6}
+.mp-link{display:block;margin-top:14px;width:100%;background:none;border:0;color:var(--muted);font-size:.82rem;text-decoration:underline;text-underline-offset:3px}
+.mp-link:hover{color:var(--green)}
+#relay-panel textarea{width:100%;height:88px;margin:0 0 14px;padding:.7rem;border:1px solid var(--line);border-radius:12px;background:#f8faf8;color:var(--text);font-family:ui-monospace,Consolas,monospace;font-size:.78rem;line-height:1.5;resize:none;word-break:break-all}
 @media(max-width:480px){.login-card{padding:26px 20px;border-radius:18px}}
 </style>
 </head>
@@ -52,9 +55,17 @@ footer{margin-top:22px;color:var(--muted);font-size:.76rem;text-align:center;lin
       <li><i></i>性能监控与运动状态分析</li>
     </ul>
     <button id="login-button" class="btn" type="button">使用合宙账号登录</button>
+    <button id="mp-relay-button" class="mp-link" type="button">为微信小程序获取登录 Token（取票模式）</button>
   </section>
   <section id="login-loading" class="loading-row hidden" aria-live="polite">
     <div class="spinner"></div><span id="login-loading-text">正在确认登录状态…</span>
+  </section>
+  <section id="relay-panel" class="hidden">
+    <div class="eyebrow">小程序取票</div>
+    <h1>Token 已就绪</h1>
+    <p>这是一次性登录凭证，网页端未消费。点「复制 Token」粘贴到小程序登录页输入框完成登录（有效期有限，请尽快使用，复制后可直接关闭本页）。</p>
+    <textarea id="relay-token" readonly spellcheck="false"></textarea>
+    <button id="relay-copy" class="btn" type="button">复制 Token</button>
   </section>
   <section id="login-error" class="status-error hidden" role="alert"></section>
   <footer>授权信息仅用于读取当前账号下的设备数据，不会写入任何数据</footer>
@@ -110,6 +121,49 @@ footer{margin-top:22px;color:var(--muted);font-size:.76rem;text-align:center;lin
   var loadingText = document.getElementById('login-loading-text');
   var errEl = document.getElementById('login-error');
   var loggingIn = false;
+
+  // ---- 小程序取票模式（mp_relay）----
+  // OAuth token 一次性：网页回调若自动换取，小程序拿到即「已被使用」。
+  // 取票模式 = 网页端不消费 token，展示给用户复制，交由小程序换取登录态。
+  var relayPanel = document.getElementById('relay-panel');
+  var relayTokenEl = document.getElementById('relay-token');
+  var relayCopyBtn = document.getElementById('relay-copy');
+  var SS_RELAY = 'mp_relay'; // sessionStorage 标志：本次 OAuth 为取票（不落盘、随标签页关闭失效）
+  function relayFlag() {
+    try { return window.sessionStorage.getItem(SS_RELAY) === '1'; } catch (e) { return false; }
+  }
+  function setRelayFlag(on) {
+    try {
+      if (on) window.sessionStorage.setItem(SS_RELAY, '1');
+      else window.sessionStorage.removeItem(SS_RELAY);
+    } catch (e) { /* 忽略 */ }
+  }
+  function showRelay(token) {
+    loadingEl.classList.add('hidden');
+    btn.parentNode.classList.add('hidden');
+    relayTokenEl.value = token; // 取票例外（规则十四点一）：仅内存 + 受控只读 textarea，供用户主动复制
+    relayPanel.classList.remove('hidden');
+    relayCopyBtn.textContent = '复制 Token';
+  }
+  function copyToken() {
+    var t = relayTokenEl.value;
+    var done = function () { relayCopyBtn.textContent = '已复制 ✔'; };
+    var fallback = function () {
+      try {
+        relayTokenEl.focus(); relayTokenEl.select();
+        if (document.execCommand('copy')) done();
+        else relayCopyBtn.textContent = '复制失败，请长按文本框手动复制';
+      } catch (e) { relayCopyBtn.textContent = '复制失败，请长按文本框手动复制'; }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(done, fallback);
+    } else { fallback(); }
+  }
+  relayCopyBtn.addEventListener('click', copyToken);
+  document.getElementById('mp-relay-button').addEventListener('click', function () {
+    setRelayFlag(true);
+    startOAuth();
+  });
 
   function showLogin() {
     loadingEl.classList.add('hidden');
@@ -268,6 +322,8 @@ footer{margin-top:22px;color:var(--muted);font-size:.76rem;text-align:center;lin
         var clean = window.location.pathname + (isLocal() ? '' : '');
         window.history.replaceState({}, '', clean);
       } catch (e) { /* 忽略 */ }
+      // 取票模式：网页端不消费，展示给用户复制（小程序换取登录态）
+      if (relayFlag()) { setRelayFlag(false); showRelay(token); return; }
       exchangeLogin(token);
       return;
     }
@@ -296,7 +352,9 @@ footer{margin-top:22px;color:var(--muted);font-size:.76rem;text-align:center;lin
       return;
     }
     // 已有完整有效认证 → 直接跳 index（自动登录，不重复 OAuth）
-    if (hasAnyAuth()) {
+    // 例外：?mp=1 / #mp=1 为小程序取票入口，跳过自动登录留在取票页
+    var mpRelayEntry = q.mp === '1' || hs.mp === '1';
+    if (hasAnyAuth() && !mpRelayEntry) {
       showLoading('检测到已有登录态，正在进入…');
       goPage(redirectTarget());
       return;
@@ -318,7 +376,7 @@ footer{margin-top:22px;color:var(--muted);font-size:.76rem;text-align:center;lin
     return out;
   }
 
-  btn.addEventListener('click', startOAuth);
+  btn.addEventListener('click', function () { setRelayFlag(false); startOAuth(); }); // 正常登录：清除取票标志，防止劫持
   initAuth();
 })();
 </script>

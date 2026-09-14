@@ -70,3 +70,6 @@ Testing/
 
 # WorkBuddy worktree ????
 .workbuddy/
+
+# 微信开发者工具：个人本地配置（不应提交）
+miniprogram/project.private.config.json
