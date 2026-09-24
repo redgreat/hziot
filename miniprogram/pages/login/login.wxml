@@ -6,14 +6,15 @@
   </view>
 
   <view class="card">
-    <view class="step">第 1 步：在浏览器打开你的 WEB 应用登录页并完成登录</view>
-    <view class="muted">登录成功后浏览器地址栏是 …login.html?token=xxxx 的地址</view>
+    <view class="step">第 1 步：在浏览器打开 WEB 应用登录页，点「为微信小程序获取登录 Token（取票模式）」完成授权</view>
+    <view class="muted">网页会显示一个 token 二维码（不要直接用地址栏 token，那会被网页自己用掉）</view>
+    <button class="btn mt" bindtap="onScanImport">扫码导入</button>
     <button class="btn-ghost mt" bindtap="onCopyAuthorize">复制说明文本</button>
   </view>
 
   <view class="card">
-    <view class="step">第 2 步：把含 token 的地址（或裸 token）粘贴到下面</view>
-    <textarea class="ta" placeholder="粘贴 …login.html?token=xxxx 或仅 token" value="{{paste}}" bindinput="onInput" maxlength="-1" />
+    <view class="step">第 2 步：扫不了码就复制网页上的 token 粘贴到下面</view>
+    <textarea class="ta" placeholder="粘贴网页取票面板复制的 token（或含 token= 的地址）" value="{{paste}}" bindinput="onInput" maxlength="-1" />
     <button class="btn mt" loading="{{loading}}" bindtap="onLogin">登录</button>
     <view class="warn mt" wx:if="{{error}}">{{error}}</view>
   </view>

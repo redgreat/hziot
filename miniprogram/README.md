@@ -5,7 +5,7 @@
 ## 目录导入
 
 1. 打开「微信开发者工具」→ 导入项目 → 选择本 `miniprogram/` 目录；
-2. AppID 已在 `project.config.json` 中配置为 `wxb75ab50df62a6174`，导入时工具会自动带出，无需手填（换账号/换小程序时改这一处即可）；
+2. AppID 已在 `project.config.json` 中配置为 `wxf4a28a9b86e1075d`（正式注册小程序，个人主体），导入时工具会自动带出，无需手填（换账号/换小程序时改这一处即可）；
 3. **request 合法域名**：登录 微信公众平台 → 开发管理 → 开发设置 → 服务器域名，把 `https://api-iot.luatos.com` 加入 **request 合法域名**（工具里临时调试可勾选「不校验合法域名」）。
 
 ## 登录方式（授权导入）
@@ -16,8 +16,8 @@
 
 1. 浏览器打开你部署在合宙的 WEB 应用登录页（若已自动登录，访问 `…/login.html?mp=1`）；
 2. 点「**为微信小程序获取登录 Token（取票模式）**」→ 完成 OAuth 授权；
-3. 页面显示未消费的 token → 点「复制 Token」；
-4. 粘贴进小程序登录页 → 点「登录」：小程序调用 `POST /iam/luat_oauth/v2/login?token=…` 换取 auth/service，之后与 WEB 端完全同源。
+3. 页面显示未消费的 token 与二维码 → 小程序登录页点「**扫码导入**」对准二维码，或点网页「复制 Token」后粘贴；
+4. 点「登录」：小程序调用 `POST /iam/luat_oauth/v2/login?token=…` 换取 auth/service，之后与 WEB 端完全同源。
 
 注意：取票模式改在 `login.html`（独立源文件），修改后需**重新上传 login.html 到合宙平台**（`build_deploy.py` 只构建 index.html，不覆盖 login.html）。
 

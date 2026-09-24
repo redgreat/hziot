@@ -7,8 +7,25 @@ Page({
 
   onCopyAuthorize() {
     wx.setClipboardData({
-      data: '1) 在浏览器打开你的 WEB 应用（合宙平台已部署的 login.html）并完成登录；\n2) 登录成功后复制浏览器地址栏完整地址；\n3) 回到小程序粘贴到输入框点登录。',
+      data: '1) 在浏览器打开你的 WEB 应用登录页（合宙平台已部署的 login.html）；\n2) 点「为微信小程序获取登录 Token（取票模式）」完成授权；\n3) 页面出现二维码和 token：小程序点「扫码导入」对准二维码，或复制 token 粘贴到输入框。',
       success() { wx.showToast({ title: '已复制说明', icon: 'success' }); }
+    });
+  },
+
+  /* 扫码导入：对准网页取票面板上的 token 二维码 */
+  onScanImport() {
+    wx.scanCode({
+      onlyFromCamera: false,
+      success: (res) => {
+        const token = api.extractToken(res && res.result);
+        if (!token) {
+          this.setData({ error: '二维码内容未识别到 token，请改用复制粘贴' });
+          return;
+        }
+        this.setData({ paste: token, error: '' });
+        wx.showToast({ title: '已识别 token', icon: 'success' });
+      },
+      fail: () => { /* 用户取消，静默 */ }
     });
   },
 
